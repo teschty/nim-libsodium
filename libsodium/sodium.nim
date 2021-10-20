@@ -177,6 +177,30 @@ proc hex2bin*(data: string, ignore=""): string =
 # Authenticated encryption
 # https://download.libsodium.org/doc/secret-key_cryptography/authenticated_encryption.html
 
+proc crypto_secretbox(
+  c: ptr cuchar,
+  m: ptr cuchar,
+  mlen: culonglong,
+  n: ptr cuchar,
+  k: ptr cuchar,
+): cint {.sodium_import.}
+
+proc crypto_secretbox*(message: string, nonce: string, key: string): string =
+  assert key.len == crypto_secretbox_KEYBYTES()
+  assert nonce.len == crypto_secretbox_NONCEBYTES()
+
+  let padded = "\x00".repeat(crypto_secretbox_zerobytes().int) & message
+
+  let
+    ciphertext = newString padded.len
+    c_ciphertext = cpt ciphertext
+    cmsg = cpt padded
+    mlen = culen padded
+    ckey = cpt key
+    cnonce = cpt nonce
+  let rc = crypto_secretbox(c_ciphertext, cmsg, mlen, cnonce, ckey)
+  check_rc rc
+  return ciphertext.substr(crypto_secretbox_boxzerobytes().int)
 
 #void crypto_secretbox_keygen(unsigned char k[crypto_secretbox_KEYBYTES]);
 
